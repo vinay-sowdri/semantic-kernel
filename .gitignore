@@ -1,0 +1,15 @@
+## Build results
+bin/
+obj/
+
+## User secrets
+appsettings.Development.json
+secrets.json
+
+## OS
+.vs/
+*.user
+*.log
+
+## Environment
+.env

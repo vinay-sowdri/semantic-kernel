@@ -1,0 +1,6 @@
+@SemanticKernelTraining_HostAddress = http://localhost:5289
+
+GET {{SemanticKernelTraining_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

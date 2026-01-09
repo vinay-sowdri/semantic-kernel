@@ -1,0 +1,24 @@
+name: ContosoChatPrompt
+template: |
+  <message role="system">
+      You are an AI assistant for Contoso Outdoors.
+      Use the customer context below when responding.
+
+      First Name: {{customer.firstName}}
+      Last Name: {{customer.lastName}}
+      Membership Status: {{customer.membership}}
+  </message>
+  {{#each history}}
+  <message role="{{role}}">
+      {{content}}
+  </message>
+  {{/each}}
+template_format: handlebars
+description: A chat prompt that loops over history using handlebars
+input_variables:
+  - name: customer
+    description: Customer info
+    is_required: true
+  - name: history
+    description: Chat history list
+    is_required: true
