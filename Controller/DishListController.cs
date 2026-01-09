@@ -5,9 +5,10 @@ using SemanticKernelTraining.DishListPlugin;
 using SemanticKernelTraining.SummarizePlugin;
 using SemanticKernelTraining.CustomerPlugin;
 using SemanticKernelTraining.Models;
-[ApiController]
+using SemanticKernelTraining.Controllers;
+
 [Route("api/[controller]")]
-public class DishListController : ControllerBase
+public class DishListController : BaseApiController
 {
     private readonly Kernel _kernel;
     public DishListController(Kernel kernel)
@@ -15,52 +16,45 @@ public class DishListController : ControllerBase
         _kernel = kernel;
     }
     [HttpGet("get-dish-list")]
-    public async Task<IActionResult> GetDishList([FromQuery] string ingredients){
-        try
+    public async Task<IActionResult> GetDishList([FromQuery] string ingredients)
+    {
+        return await ExecuteAsync(async () =>
         {
             Console.WriteLine($"[Controller] Received ingredients: '{ingredients}'");
-            
+
             if (string.IsNullOrWhiteSpace(ingredients))
             {
-                return BadRequest(new { error = "ingredients parameter is required and cannot be empty" });
+                throw new ArgumentException("ingredients parameter is required and cannot be empty");
             }
 
-           var result = await _kernel.InvokeAsync("DishListPlugin", "get_dish_list", new KernelArguments() { { "ingredients", ingredients } });
-           return Ok(new { success = true, data = result.ToString() });
-            
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = ex.Message, details = ex.StackTrace });
-        }
+            var result = await _kernel.InvokeAsync("DishListPlugin", "get_dish_list", new KernelArguments() { { "ingredients", ingredients } });
+            return result.ToString();
+        });
     }
 
     [HttpGet("get-summary")]
-    public async Task<IActionResult> GetSummary([FromQuery] string topic){
-        try
+    public async Task<IActionResult> GetSummary([FromQuery] string topic)
+    {
+        return await ExecuteAsync(async () =>
         {
             Console.WriteLine($"[Controller] Received topic: '{topic}'");
-            
+
             if (string.IsNullOrWhiteSpace(topic))
             {
-                return BadRequest(new { error = "topic parameter is required and cannot be empty" });
+                throw new ArgumentException("topic parameter is required and cannot be empty");
             }
 
-           var result = await _kernel.InvokeAsync("SummarizePlugin", "get_Summarize_details", new KernelArguments() { { "topic", topic } });
-           return Ok(new { success = true, data = result.ToString() });
-            
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = ex.Message, details = ex.StackTrace });
-        }
+            var result = await _kernel.InvokeAsync("SummarizePlugin", "get_Summarize_details", new KernelArguments() { { "topic", topic } });
+            return result.ToString();
+        });
     }
 
     [HttpGet("get-customer-summary")]
-    public async Task<IActionResult> GetCustomerSummary(){
-        try
+    public async Task<IActionResult> GetCustomerSummary()
+    {
+        return await ExecuteAsync(async () =>
         {
-            Customer customer = new Customer
+            var customer = new Customer
             {
                 FirstName = "John",
                 LastName = "Doe",
@@ -72,28 +66,19 @@ public class DishListController : ControllerBase
                 }
             };
             Console.WriteLine($"[Controller] Received customer: '{customer}'");
-            
-            if (customer == null)
-            {
-                return BadRequest(new { error = "customer parameter is required and cannot be null" });
-            }
 
-           var result = await _kernel.InvokeAsync("CustomerPlugin", "get_customer_details", new KernelArguments() { { "customer", customer } });
-           return Ok(new { success = true, data = result.ToString() });
-            
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = ex.Message, details = ex.StackTrace });
-        }
+            var result = await _kernel.InvokeAsync("CustomerPlugin", "get_customer_details", new KernelArguments() { { "customer", customer } });
+            return result.ToString();
+        });
     }
 
 
     [HttpGet("get-customer-chat-history")]
-    public async Task<IActionResult> GetChatPromptHistory(){
-        try
+    public async Task<IActionResult> GetChatPromptHistory()
+    {
+        return await ExecuteAsync(async () =>
         {
-            Customer customer = new Customer
+            var customer = new Customer
             {
                 FirstName = "John",
                 LastName = "Doe",
@@ -103,22 +88,22 @@ public class DishListController : ControllerBase
                     new History { Role = "User", Content = "What are my order details?" },
                     new History { Role = "System", Content = "Could you please provide your membership information?" }
                 }
-                
             };
             Console.WriteLine($"[Controller] Received customer: '{customer}'");
-            
-            if (customer == null)
-            {
-                return BadRequest(new { error = "customer parameter is required and cannot be null" });
-            }
 
-           var result = await _kernel.InvokeAsync("ChatPromptHistoryPlugin", "get_chat_prompt_history", new KernelArguments() { { "customer", customer } });
-           return Ok(new { success = true, data = result.ToString() });
-            
-        }
-        catch (Exception ex)
+            var result = await _kernel.InvokeAsync("ChatPromptHistoryPlugin", "get_chat_prompt_history", new KernelArguments() { { "customer", customer } });
+            return result.ToString();
+        });
+    }
+
+    [HttpGet("get-test")]
+    public async Task<IActionResult> GetTest([FromQuery] string city)
+    {
+        return await ExecuteAsync(async () =>
         {
-            return BadRequest(new { error = ex.Message, details = ex.StackTrace });
-        }
+
+            var result = await _kernel.InvokeAsync("testplugin", "get_city_summary", new KernelArguments() { { "city", city} });
+            return result.ToString();
+        });
     }
 }

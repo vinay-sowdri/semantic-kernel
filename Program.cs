@@ -6,9 +6,10 @@ using SemanticKernelTraining.SummarizePlugin;
 using SemanticKernelTraining.CustomerPlugin;
 using SemanticKernelTraining.ChatPromptHistoryPlugin;
 using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
+using SemanticKernelTraining.TestPlugin;
+
 Console.WriteLine("Starting application...");
 
-// Create the ASP.NET Core app builder first to access configuration
 var builder = WebApplication.CreateBuilder(args);
 
 // Read configuration values
@@ -18,32 +19,29 @@ var modelId = configuration["OpenAI:ModelId"] ?? throw new InvalidOperationExcep
 var endpointStr = configuration["OpenAI:Endpoint"] ?? throw new InvalidOperationException("OpenAI:Endpoint not configured");
 var endpoint = new Uri(endpointStr);
 
+Console.WriteLine("Configuring services...");
+
+// Register core services
+builder.Services.AddSingleton<IPromptTemplateFactory, HandlebarsPromptTemplateFactory>();
+
+
+// Configure OpenAI client
 Console.WriteLine("Creating OpenAI client...");
-// Use the standard OpenAI client, but with GitHub credentials
 var clientOptions = new OpenAIClientOptions { Endpoint = endpoint };
 var client = new OpenAIClient(new ApiKeyCredential(githubPat), clientOptions);
 
-Console.WriteLine("Creating kernel...");
-// Create the Kernel
-var kernelBuilder = Kernel.CreateBuilder();
+// Register Semantic Kernel - it shares the same DI container
+Console.WriteLine("Configuring Semantic Kernel...");
+var kernelBuilder = builder.Services.AddKernel();
 kernelBuilder.AddOpenAIChatCompletion(modelId, client);
 
-// Add plugins at startup (not per-request)
-Console.WriteLine("Adding plugins...");
+// Add plugins to the kernel
 kernelBuilder.Plugins.AddFromType<DishListPlugin>();
 kernelBuilder.Plugins.AddFromType<SummarizePlugin>();
 kernelBuilder.Plugins.AddFromType<CustomerPlugin>();
 kernelBuilder.Plugins.AddFromType<ChatPromptHistoryPlugin>();
+kernelBuilder.Plugins.AddFromType<TestPlugin>();
 
-var kernel = kernelBuilder.Build();
-
-// Register services BEFORE building the app
-builder.Services.AddSingleton<Kernel>(kernel);
-builder.Services.AddSingleton<IPromptTemplateFactory, HandlebarsPromptTemplateFactory>();
-builder.Services.AddSingleton<DishListPlugin>();
-builder.Services.AddSingleton<SummarizePlugin>();
-builder.Services.AddSingleton<CustomerPlugin>();
-builder.Services.AddSingleton<ChatPromptHistoryPlugin>();
 builder.Services.AddControllers();
 
 var app = builder.Build();
@@ -77,7 +75,7 @@ var summaries = new[]
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
 
-app.MapGet("/weatherforecast", async () =>
+app.MapGet("/weatherforecast", async (Kernel kernel) =>
 {
    try
    {

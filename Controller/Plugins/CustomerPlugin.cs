@@ -9,13 +9,18 @@ namespace SemanticKernelTraining.CustomerPlugin
 {
     public class CustomerPlugin
     {
+        private readonly IPromptTemplateFactory _templateFactory;
+
+        public CustomerPlugin(IPromptTemplateFactory templateFactory)
+        {
+            _templateFactory = templateFactory;
+        }
+
         [KernelFunction("get_customer_details")]
         [Description("Get customer details")]
         public async Task<string> GetCustomerDetails(Kernel kernel, [Description("The customer details" )] Customer customer)
         {
             Console.WriteLine($"[Plugin] Received customer parameter: '{customer}'");
-            var templateFactory = new HandlebarsPromptTemplateFactory();
-        
         Console.WriteLine("✓ Template factory created (Handlebars engine ready)");
 
         // ═══════════════════════════════════════════════════════════
@@ -48,7 +53,7 @@ namespace SemanticKernelTraining.CustomerPlugin
         // But it still hasn't rendered anything yet!
         //
         // This is like loading a program into memory but not running it yet
-        var promptTemplate = templateFactory.Create(promptConfig);
+        var promptTemplate = _templateFactory.Create(promptConfig);
         
         Console.WriteLine("✓ Prompt template object created (ready to render)");
 

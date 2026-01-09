@@ -7,6 +7,13 @@ namespace SemanticKernelTraining.ChatPromptHistoryPlugin
 {
     public class ChatPromptHistoryPlugin
     {
+        private readonly IPromptTemplateFactory _templateFactory;
+
+        public ChatPromptHistoryPlugin(IPromptTemplateFactory templateFactory)
+        {
+            _templateFactory = templateFactory;
+        }
+
         [KernelFunction("get_chat_prompt_history")]
         [Description("Get chat prompt history of the customer")]
         public async Task<string> GetChatPromptHistory(Kernel kernel, [Description("The customer chat prompt history" )] Customer customer)
@@ -43,7 +50,7 @@ namespace SemanticKernelTraining.ChatPromptHistoryPlugin
                     Content = "Could you please provide your membership information?"
                 }
             };
-           var function =  kernel.CreateFunctionFromPrompt(promptConfig);
+           var function =  kernel.CreateFunctionFromPrompt(promptConfig, _templateFactory);
            var result = await kernel.InvokeAsync(function, arguments);
             Console.WriteLine($"[Plugin] Prompt template: {yaml}");
             Console.WriteLine($"[Plugin] Arguments: customer='{arguments["customer"]}'");
