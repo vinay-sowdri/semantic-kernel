@@ -1,7 +1,7 @@
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 
-namespace SemanticKernelTraining.DishListPlugin
+namespace SemanticKernelTraining.Plugins
 {
     public class DishListPlugin
     {

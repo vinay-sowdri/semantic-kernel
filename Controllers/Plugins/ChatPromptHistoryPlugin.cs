@@ -5,22 +5,40 @@ using SemanticKernelTraining.Constants;
 using SemanticKernelTraining.Models;
 namespace SemanticKernelTraining.ChatPromptHistoryPlugin
 {
+    /// <summary>
+    /// Plugin for processing chat prompt history with customer context
+    /// </summary>
     public class ChatPromptHistoryPlugin
     {
         private readonly IPromptTemplateFactory _templateFactory;
 
+        /// <summary>
+        /// Initializes a new instance of ChatPromptHistoryPlugin
+        /// </summary>
+        /// <param name="templateFactory">Prompt template factory for rendering templates</param>
         public ChatPromptHistoryPlugin(IPromptTemplateFactory templateFactory)
         {
             _templateFactory = templateFactory;
         }
 
+        /// <summary>
+        /// Gets chat prompt history for a customer using Handlebars templates
+        /// </summary>
+        /// <param name="kernel">Semantic Kernel instance</param>
+        /// <param name="customer">Customer information including chat history</param>
+        /// <returns>AI-generated response based on customer context and history</returns>
         [KernelFunction("get_chat_prompt_history")]
         [Description("Get chat prompt history of the customer")]
         public async Task<string> GetChatPromptHistory(Kernel kernel, [Description("The customer chat prompt history" )] Customer customer)
         {
             Console.WriteLine($"[Plugin] Received customer parameter: '{customer}'");
-            
-            string yaml = File.ReadAllText("SampleHandleBarTemplate.yaml");
+
+            var templatePath = Path.Combine(Directory.GetCurrentDirectory(), "SampleHandleBarTemplate.yaml");
+            if (!File.Exists(templatePath))
+            {
+                throw new FileNotFoundException($"Template file not found at path: {templatePath}");
+            }
+            string yaml = File.ReadAllText(templatePath);
            
              var promptConfig = new PromptTemplateConfig()
         {

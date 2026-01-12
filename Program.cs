@@ -1,39 +1,55 @@
 using Microsoft.SemanticKernel;
 using OpenAI;
 using System.ClientModel;
-using SemanticKernelTraining.DishListPlugin;
+using SemanticKernelTraining.Plugins;
 using SemanticKernelTraining.SummarizePlugin;
 using SemanticKernelTraining.CustomerPlugin;
 using SemanticKernelTraining.ChatPromptHistoryPlugin;
 using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
 using SemanticKernelTraining.TestPlugin;
+using SemanticKernelTraining.Configuration;
+using Microsoft.Extensions.Options;
+using SemanticKernelTraining.Interface;
+using SemanticKernelTraining.FlightToolPlugin;
+using SemanticKernelTraining.FlightFilterPlugin;
+using SemanticKernelTraining.Filters;
 
-Console.WriteLine("Starting application...");
-
+// Use built-in logging instead of Console.WriteLine
 var builder = WebApplication.CreateBuilder(args);
 
-// Read configuration values
-var configuration = builder.Configuration;
-var githubPat = configuration["OpenAI:ApiKey"] ?? throw new InvalidOperationException("OpenAI:ApiKey not configured");
-var modelId = configuration["OpenAI:ModelId"] ?? throw new InvalidOperationException("OpenAI:ModelId not configured");
-var endpointStr = configuration["OpenAI:Endpoint"] ?? throw new InvalidOperationException("OpenAI:Endpoint not configured");
-var endpoint = new Uri(endpointStr);
+// Configure standard logging
+builder.Services.AddLogging(logging =>
+{
+    logging.AddConsole();
+    logging.AddDebug();
+});
 
-Console.WriteLine("Configuring services...");
+// Register configuration
+builder.Services.Configure<OpenAIOptions>(builder.Configuration.GetSection(OpenAIOptions.OpenAI));
+builder.Services.AddSingleton<IFlightService, FlightService>();
+// Validate configuration
+var openAIOptions = builder.Configuration.GetSection(OpenAIOptions.OpenAI).Get<OpenAIOptions>();
+if (openAIOptions == null || string.IsNullOrEmpty(openAIOptions.ApiKey) || string.IsNullOrEmpty(openAIOptions.Endpoint))
+{
+    throw new InvalidOperationException("OpenAI configuration is missing or invalid.");
+}
+
+var endpoint = new Uri(openAIOptions.Endpoint);
+
 
 // Register core services
 builder.Services.AddSingleton<IPromptTemplateFactory, HandlebarsPromptTemplateFactory>();
 
-
 // Configure OpenAI client
-Console.WriteLine("Creating OpenAI client...");
 var clientOptions = new OpenAIClientOptions { Endpoint = endpoint };
-var client = new OpenAIClient(new ApiKeyCredential(githubPat), clientOptions);
+var client = new OpenAIClient(new ApiKeyCredential(openAIOptions.ApiKey), clientOptions);
 
-// Register Semantic Kernel - it shares the same DI container
-Console.WriteLine("Configuring Semantic Kernel...");
+// Register Semantic Kernel
 var kernelBuilder = builder.Services.AddKernel();
-kernelBuilder.AddOpenAIChatCompletion(modelId, client);
+kernelBuilder.AddOpenAIChatCompletion(openAIOptions.ModelId, client);
+
+// Add global function invocation filter
+kernelBuilder.Services.AddSingleton<IFunctionInvocationFilter, FunctionLoggingFilter>();
 
 // Add plugins to the kernel
 kernelBuilder.Plugins.AddFromType<DishListPlugin>();
@@ -41,6 +57,8 @@ kernelBuilder.Plugins.AddFromType<SummarizePlugin>();
 kernelBuilder.Plugins.AddFromType<CustomerPlugin>();
 kernelBuilder.Plugins.AddFromType<ChatPromptHistoryPlugin>();
 kernelBuilder.Plugins.AddFromType<TestPlugin>();
+kernelBuilder.Plugins.AddFromType<FlightToolPlugin>();
+kernelBuilder.Plugins.AddFromType<FlightFilterPlugin>();
 
 builder.Services.AddControllers();
 
@@ -51,20 +69,13 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// Add exception handling middleware
-app.Use(async (context, next) =>
+// Add standard exception handling middleware
+if (!app.Environment.IsDevelopment())
 {
-    try
-    {
-        await next.Invoke();
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"EXCEPTION IN PIPELINE: {ex}");
-        context.Response.StatusCode = 500;
-        await context.Response.WriteAsJsonAsync(new { error = ex.Message, type = ex.GetType().Name });
-    }
-});
+    app.UseExceptionHandler("/Error");
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
 

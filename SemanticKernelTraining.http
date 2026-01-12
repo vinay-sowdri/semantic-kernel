@@ -4,3 +4,11 @@ GET {{SemanticKernelTraining_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+POST {{SemanticKernelTraining_HostAddress}}/api/dishlist/ask
+Content-Type: application/json
+
+{
+    "prompt": "Book a flight to Tokyo for tomorrow"
+}
+
